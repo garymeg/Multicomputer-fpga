@@ -70,9 +70,9 @@ driveLED                     : 3         : output : 3.3-V LVTTL       :         
 n_sRamWE                     : 4         : output : 3.3-V LVTTL       :         : 1         : Y              
 VCCIO1                       : 5         : power  :                   : 3.3V    : 1         :                
 GND                          : 6         : gnd    :                   :         :           :                
-sramAddress[17]              : 7         : output : 3.3-V LVTTL       :         : 1         : Y              
+bankRegisterPins[0]          : 7         : output : 3.3-V LVTTL       :         : 1         : Y              
 sramAddress[15]              : 8         : output : 3.3-V LVTTL       :         : 1         : Y              
-sramAddress[18]              : 9         : output : 3.3-V LVTTL       :         : 1         : Y              
+bankRegisterPins[1]          : 9         : output : 3.3-V LVTTL       :         : 1         : Y              
 TDO                          : 10        : output :                   :         : 1         :                
 TMS                          : 11        : input  :                   :         : 1         :                
 TCK                          : 12        : input  :                   :         : 1         :                
@@ -95,7 +95,7 @@ sramAddress[12]              : 28        : output : 3.3-V LVTTL       :         
 VCCIO1                       : 29        : power  :                   : 3.3V    : 1         :                
 sramAddress[14]              : 30        : output : 3.3-V LVTTL       :         : 1         : Y              
 n_epromCS                    : 31        : output : 3.3-V LVTTL       :         : 1         : Y              
-sramAddress[16]              : 32        : output : 3.3-V LVTTL       :         : 1         : Y              
+bankRegisterPins[2]          : 32        : output : 3.3-V LVTTL       :         : 1         : Y              
 GND                          : 33        : gnd    :                   :         :           :                
 GND_PLL1                     : 34        : gnd    :                   :         :           :                
 VCCD_PLL1                    : 35        : power  :                   : 1.2V    :           :                
@@ -149,8 +149,8 @@ nSTATUS                      : 82        :        :                   :         
 CONF_DONE                    : 83        :        :                   :         : 3         :                
 MSEL1                        : 84        :        :                   :         : 3         :                
 MSEL0                        : 85        :        :                   :         : 3         :                
-ps2Clk                       : 86        : bidir  : 3.3-V LVTTL       :         : 3         : Y              
-ps2Data                      : 87        : bidir  : 3.3-V LVTTL       :         : 3         : Y              
+ps2Data                      : 86        : bidir  : 3.3-V LVTTL       :         : 3         : Y              
+ps2Clk                       : 87        : bidir  : 3.3-V LVTTL       :         : 3         : Y              
 GND+                         : 88        :        :                   :         : 3         :                
 GND+                         : 89        :        :                   :         : 3         :                
 GND+                         : 90        :        :                   :         : 3         :                

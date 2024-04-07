@@ -4,7 +4,7 @@ JedecChain;
 	DefaultMfr(6E);
 
 	P ActionCode(Cfg)
-		Device PartName(EP2C5T144) Path("C:/Users/gmeth/Desktop/Multicomp/Microcomputer/output_files/") File("Microcomputer.sof") MfrSpec(OpMask(1));
+		Device PartName(EP2C5T144) Path("D:/Documents/Programming/FPGA/Multicomputer-fpga/Microcomputer/output_files/") File("Microcomputer.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 

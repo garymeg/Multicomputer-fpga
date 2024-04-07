@@ -23,8 +23,10 @@ entity Microcomputer is
 		n_reset		: in std_logic;
 		clk			: in std_logic;
 
+    --bankSwitch  : output std_logic_vector(2 downto 0);
+
 		sramData		: inout std_logic_vector(7 downto 0);
-		sramAddress	: out std_logic_vector(18 downto 0);
+		sramAddress	: out std_logic_vector(15 downto 0);
 		n_sRamWE		: out std_logic;
 		n_sRamCS		: out std_logic;
 		n_sRamOE		: out std_logic;
@@ -62,7 +64,8 @@ entity Microcomputer is
 		sdMOSI		: out std_logic;
 		sdMISO		: in std_logic;
 		sdSCLK		: out std_logic;
-		driveLED		: out std_logic :='1'	
+		driveLED		: out std_logic :='1';
+    bankRegisterPins : out std_logic_vector(2 downto 0)	
   );
 end Microcomputer;
 
@@ -108,8 +111,13 @@ architecture struct of Microcomputer is
 	signal cpuClock					: std_logic;
 	signal serialClock				: std_logic;
 	signal sdClock						: std_logic;	
+
+  signal BankSwitch         : std_logic_vector(2 downto 0) := (others => '1');
 	
 begin
+  bankRegisterPins <= BankSwitch; -- Assign bank_register to output pins
+
+
 -- ____________________________________________________________________________________
 -- CPU CHOICE GOES HERE
 cpu1 : entity work.T65
@@ -126,19 +134,15 @@ SO_n => '1',
 R_W_n => n_WR,
 A(15 downto 0) => cpuAddress,
 DI => cpuDataIn,
-DO => cpuDataOut);
+DO => cpuDataOut
+);
 -- ____________________________________________________________________________________
 -- ROM GOES HERE	
 	rom1 : entity work.M6502_BASIC_ROM -- 8KB BASIC
---port map(
---address => cpuAddress(12 downto 0),
---clock => clk,
---q => basRomData
---);
-port map(
-address => cpuAddress(12 downto 0),
-clock => clk,
-q => basRomData
+  port map(
+  address => cpuAddress(12 downto 0),
+  clock => clk,
+  q => basRomData
 );
 -- ____________________________________________________________________________________
 -- RAM GOES HERE
@@ -164,21 +168,41 @@ q => basRomData
 -- q => internalRam1DataOut
 -- );
 
--- External Ram
+-- Zero page and stack fixed ram
+-- uses 256 bytes of internal memory for 0-page
+-- 
+ram1: entity work.InternalRam256bytes
+  port map
+  (
+  address => cpuAddress(7 downto 0),
+  clock => clk,
+  data => cpuDataOut,
+  wren => not(n_memWR or n_internalRam1CS),
+  q => internalRam1DataOut
+  );
+-- Address decoding logic
+process(clk) 
+begin
+    if rising_edge(clk) then
+        -- Handle bank register at address 0x0000
+        if cpuAddress = x"FF" then
+            if n_WR = '0' then  -- Check for write enable signal
+                -- Write operation to bank register
+                bankSwitch <= cpuDataOut(2 downto 0);  -- Only update bank_register on a write operation
+
+            end if;
+        END IF;
+    end if;
+end process;
+
+-- Enable External Ram
 sramAddress(14 downto 0) <= cpuAddress(14 downto 0);
 sramData <= cpuDataOut when n_WR='0' else (others => 'Z');
 n_sRamWE <= n_memWR;
 n_sRamOE <= n_memRD;
 n_sRamCS <= n_externalRamCS;
 
--- External Rom 
-Address(15 downto 0) <= cpuAddress(15 downto 0);
-Data <= cpuDataOut when n_WR='0' else (others => 'Z');
-n_epromOE <= n_memRD;
-n_epromCS <= n_externalRamCS;
-
-
--- INPUT/OUTPUT DEVICES GO HERE	
+--INPUT/OUTPUT DEVICES GO HERE	
 io1 : entity work.bufferedUART
 port map(
 clk => clk,
@@ -259,17 +283,19 @@ n_memRD <= not(cpuClock) nand n_WR;
 n_memWR <= not(cpuClock) nand (not n_WR);
 -- ____________________________________________________________________________________
 -- CHIP SELECTS GO HERE
-n_basRomCS <= '0' when cpuAddress(15 downto 13) = "111" else '1'; --8K at top of memory
-n_interface1CS <= '0' when cpuAddress(15 downto 1) = "111111111101000" else '1'; -- 2 bytes FFD0-FFD1
-n_interface2CS <= '0' when cpuAddress(15 downto 1) = "111111111101001" else '1'; -- 2 bytes FFD2-FFD3
-n_sdCardCS <= '0' when cpuAddress(15 downto 3) = "1111111111011" else '1'; -- 8 bytes FFD8-FFDF
+  n_basRomCS <= '0' when cpuAddress(15 downto 13) = "111" else '1'; --8K at top of memory
+  n_interface1CS <= '0' when cpuAddress(15 downto 1) = "111111111101000" else '1'; -- 2 bytes FFD0-FFD1
+  n_interface2CS <= '0' when cpuAddress(15 downto 1) = "111111111101001" else '1'; -- 2 bytes FFD2-FFD3
+  n_sdCardCS <= '0' when cpuAddress(15 downto 3) = "1111111111011" else '1'; -- 8 bytes FFD8-FFDF
 
 --Ram Selection
- n_internalRam1CS <= '0' when cpuAddress(15 downto 11) = "00000" else '1'; -- 2K Internal Ram
+
+  n_internalRam1CS <= '0' when cpuAddress(15 downto 8 ) = "00000000" else '1'; -- 256b Internal Ram
+--n_internalRam1CS <= '0' when cpuAddress(15 downto 11) = "00000" else '1'; -- 2K Internal Ram
 --n_internalRam1CS <= '0' when cpuAddress(15 downto 12) = "0000" else '1'; -- 4K Internal Ram
 --n_externalRamCS <= '0' when cpuAddress(15) = '0' else '1'; -- 32K External SRAM
 	n_externalRamCS<= not n_basRomCS;
-	n_externalepromCS<= n_basRomCS;
+  --n_externalepromCS<= n_basRomCS;
 	
 -- ____________________________________________________________________________________
 -- BUS ISOLATION GOES HERE
@@ -279,9 +305,8 @@ interface1DataOut when n_interface1CS = '0' else
 interface2DataOut when n_interface2CS = '0' else
 sdCardDataOut when n_sdCardCS = '0' else
 basRomData when n_basRomCS = '0' else
---internalRam1DataOut when n_internalRam1CS= '0' else
+internalRam1DataOut when n_internalRam1CS= '0' else
 sramData when n_externalRamCS= '0' else
-epromData when n_externalepromCS= '0' else
 x"FF";
 
 -- ____________________________________________________________________________________
@@ -291,6 +316,7 @@ x"FF";
 serialClock <= serialClkCount(15);
 process (clk)
 begin
+
 if rising_edge(clk) then
 
 if cpuClkCount < 4 then -- 4 = 10MHz, 3 = 12.5MHz, 2=16.6MHz, 1=25MHz
